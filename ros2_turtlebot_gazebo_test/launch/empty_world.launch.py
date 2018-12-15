@@ -6,7 +6,6 @@ import asyncio
 import logging
 import os
 import re
-import time
 
 from ament_index_python.packages import get_package_share_directory
 import launch
@@ -17,10 +16,10 @@ from gazebo_msgs.srv import SpawnEntity
 
 _logger = logging.getLogger('empty_world.launch')
 
-class Spawn(launch.action.Action):
-    node = None
 
-    def __init__(self, name, xml, initial_pose=None, robot_namespace="", **kwargs):
+class Spawn(launch.action.Action):
+    def __init__(self, name, xml, initial_pose=None, robot_namespace="",
+                 **kwargs):
         super().__init__(**kwargs)
         self.__name = name
         self.__xml = xml
@@ -34,6 +33,7 @@ class Spawn(launch.action.Action):
 
     async def _wait_and_spawn(self, context):
         try:
+            # this should be unique or make this as a class member
             node = rclpy.create_node('Spawner')
             rclpy.get_global_executor().add_node(node)
             cli = node.create_client(SpawnEntity, 'spawn_entity')
@@ -45,9 +45,11 @@ class Spawn(launch.action.Action):
                         robot_namespace=self.__robot_namespace,
                         initial_pose=self.__initial_pose))
                     if not res.success:
-                        _logger.error("failed to spawn: {0}".format(res.status_message))
+                        _logger.error("failed to spawn: {0}".
+                                      format(res.status_message))
                     else:
-                        _logger.info("spawned: {0}".format(res.status_message))
+                        _logger.info("spawned: {0}".
+                                     format(res.status_message))
                     break
                 await asyncio.sleep(1)
         finally:
@@ -63,12 +65,17 @@ class Spawn(launch.action.Action):
 
     def get_asyncio_future(self):
         return self.__completed_future
-    
+
+
 def generate_launch_description():
-    urdf = os.path.join(get_package_share_directory('turtlebot_description'), 'urdf', 'create_circles_kinect.urdf')
+    urdf = os.path.join(
+        get_package_share_directory('turtlebot_description'),
+        'urdf', 'create_circles_kinect.urdf')
 
     gazebo = launch.actions.ExecuteProcess(
-        cmd=['gazebo', '--verbose', '-s', 'libgazebo_ros_init.so', '-s', 'libgazebo_ros_factory.so'],
+        cmd=['gazebo', '--verbose',
+             '-s', 'libgazebo_ros_init.so',
+             '-s', 'libgazebo_ros_factory.so'],
         output='screen',
     )
     namespace = 'tb1'
@@ -89,14 +96,15 @@ def generate_launch_description():
         node_namespace=namespace)
 
     xml = open(urdf, 'r').read()
+
     def replace_package_path(match):
-        f = os.path.join('file://' + get_package_share_directory(match[1]) + '/')
-        return f
+        return 'file://' + get_package_share_directory(match[1]) + '/'
     xml = re.sub(r'package\://([^/]*)/', replace_package_path, xml)
     p1 = Pose()
     p1.position.x = 0.0
     p1.orientation.w = 1.0
-    spawn_robot = Spawn('turtlebot1', xml, initial_pose=p1, robot_namespace=namespace)
+    spawn_robot = Spawn(
+        'turtlebot1', xml, initial_pose=p1, robot_namespace=namespace)
 
     return launch.LaunchDescription([
         gazebo,
