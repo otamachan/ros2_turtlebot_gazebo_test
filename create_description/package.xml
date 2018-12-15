@@ -1,4 +1,4 @@
-<package>
+<package format="2">
   <name>create_description</name>
   <version>2.3.1</version>
   <description>Model description for the iRobot Create</description>
@@ -9,7 +9,9 @@
   <url type="bugtracker">https://github.com/turtlebot/turtlebot_create/issues</url>
   <author email="turtlebot@willowgarage.com">Willow</author>
 
-  <buildtool_depend>catkin</buildtool_depend>
-  <run_depend>urdf</run_depend>
-  <run_depend>xacro</run_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
 </package>
