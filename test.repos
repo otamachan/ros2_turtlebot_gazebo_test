@@ -1,0 +1,14 @@
+repositories:
+  ros2_turtlebot_gazebo_test:
+    type: git
+    url: https://github.com/otamachan/ros2_turtlebot_gazebo_test.git
+    version: master
+  rqt_robot_steering:
+    type: git
+    url: https://github.com/otamachan/rqt_robot_steering.git
+    version: ros2-port
+  gazebo_ros_pkgs:
+    type: git
+    url: https://github.com/otamachan/gazebo_ros_pkgs.git
+    version: ros2-fix
+    
