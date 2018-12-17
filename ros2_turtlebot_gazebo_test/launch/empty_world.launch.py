@@ -6,6 +6,7 @@ import asyncio
 import logging
 import os
 import re
+import threading
 
 from ament_index_python.packages import get_package_share_directory
 import launch
@@ -18,6 +19,9 @@ _logger = logging.getLogger('empty_world.launch')
 
 
 class Spawn(launch.action.Action):
+    __node_lock = threading.Lock()
+    __node = None
+
     def __init__(self, name, xml, initial_pose=None, robot_namespace="",
                  **kwargs):
         super().__init__(**kwargs)
@@ -31,11 +35,19 @@ class Spawn(launch.action.Action):
             self.__initial_pose = initial_pose
         self.__completed_future = None
 
+    @classmethod
+    def _get_node(cls):
+        # https://en.wikipedia.org/wiki/Double-checked_locking
+        if not cls.__node:
+            with cls.__node_lock:
+                if not cls.__node:
+                    cls.__node = rclpy.create_node('Spawner')
+                    rclpy.get_global_executor().add_node(cls.__node)
+        return cls.__node
+
     async def _wait_and_spawn(self, context):
         try:
-            # this should be unique or make this as a class member
-            node = rclpy.create_node('Spawner')
-            rclpy.get_global_executor().add_node(node)
+            node = self._get_node()
             cli = node.create_client(SpawnEntity, 'spawn_entity')
             while True:
                 if cli.service_is_ready():
@@ -54,7 +66,6 @@ class Spawn(launch.action.Action):
                 await asyncio.sleep(1)
         finally:
             node.destroy_client(cli)
-            node.destroy_node()
 
         self.__completed_future.set_result(None)
 
@@ -105,11 +116,17 @@ def generate_launch_description():
     p1.orientation.w = 1.0
     spawn_robot = Spawn(
         'turtlebot1', xml, initial_pose=p1, robot_namespace=namespace)
+    p2 = Pose()
+    p2.position.x = 1.0
+    p2.orientation.w = 1.0
+    spawn_robot2 = Spawn(
+        'turtlebot2', xml, initial_pose=p2, robot_namespace="tb2")
 
     return launch.LaunchDescription([
         gazebo,
         robot_state_publisher,
         teleop_twist_joy,
         joy,
-        spawn_robot
+        spawn_robot,
+        spawn_robot2
     ])
